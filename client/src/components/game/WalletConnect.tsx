@@ -20,13 +20,10 @@ export function WalletConnect() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [cUSDBalance, setcUSDBalance] = useState("0");
-  const [connectionStatus, setConnectionStatus] = useState("");
-  const [connectionStartTime, setConnectionStartTime] = useState<number | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    const { detectMiniPayEnvironment } = require("@/lib/wallet");
-    if (detectMiniPayEnvironment()) {
+    if (isMiniPay()) {
       handleConnect();
     }
   }, []);
@@ -39,35 +36,28 @@ export function WalletConnect() {
 
   const handleConnect = async () => {
     setIsConnecting(true);
-    setConnectionStartTime(Date.now());
-    const { connectWithTimeout, detectMiniPayEnvironment } = require("@/lib/wallet");
     
     try {
-      setConnectionStatus("Switching to Alfajores...");
       await switchToAlfajores();
+      const walletState = await connectWallet();
+      setWallet(walletState);
       
-      const isMiniPayEnv = detectMiniPayEnvironment();
-      
-      if (isMiniPayEnv) {
-        setConnectionStatus("Connecting via MiniPay...");
-        try {
-          const walletState = await connectWithTimeout(5000);
-          await finalizeConnection(walletState);
-          return;
-        } catch (timeoutError) {
-          console.warn("MiniPay connection timeout, trying standard connection");
-          setConnectionStatus("Trying alternative connection...");
-        }
-      } else {
-        setConnectionStatus("Connecting wallet...");
+      if (walletState.address) {
+        const balance = await getcUSDBalance(walletState.address);
+        setcUSDBalance(balance);
       }
       
-      const walletState = await connectWallet();
-      await finalizeConnection(walletState);
+      toast({
+        title: "Wallet Connected",
+        description: walletState.isMiniPay 
+          ? "Connected with MiniPay!" 
+          : `Connected: ${shortenAddress(walletState.address || "")}`,
+      });
+    } catch (error) {
+      console.error("Connection error:", error);
       
     } catch (error) {
       console.error("Connection error:", error);
-      const elapsed = connectionStartTime ? Date.now() - connectionStartTime : 0;
       toast({
         title: "Connection Failed",
         description: error instanceof Error ? error.message : "Failed to connect wallet",
