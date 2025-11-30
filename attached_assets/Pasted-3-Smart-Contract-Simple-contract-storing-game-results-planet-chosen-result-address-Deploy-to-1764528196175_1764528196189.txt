@@ -1,0 +1,139 @@
+3. Smart Contract
+
+Simple contract storing game results (planet chosen, result, address).
+
+Deploy to Celo Sepolia Testnet.
+
+Store contract ABI + address and integrate into frontend.
+
+Use composer kit MCP structure.
+
+
+
+---
+
+4. Gameplay Improvements
+
+Implement the updated gameplay:
+
+All planets visible at the top in a row.
+
+Rocket sits on a Celo-painted launch platform (yellow accents).
+
+When launched:
+
+Rocket icon animates upward.
+
+Leaves a smoke trail (CSS animation).
+
+Lands on a RANDOM planet.
+
+
+Planets glow/highlight when the rocket lands.
+
+Game happens inside one responsive section (game container).
+
+Make background animated (stars, galaxy movement).
+
+Add subtle UI sound effects (optional).
+
+Keep mobile-first layout.
+
+
+6. Responsiveness
+
+Game container should be responsive on phones (primary audience).
+
+Make sure rocket + planets scale on smaller displays.
+
+Use Tailwind or CSS to ensure fluid layout.
+
+
+
+---
+
+7. Deployability
+
+Fix Vercel “download link” bug by ensuring:
+
+Build scripts are correct.
+
+Using Next.js (app router or pages router is fine).
+
+Public folder includes favicon.
+
+
+Replace Replit’s logo with a rocket favicon.
+
+Ensure vercel.json is correct (if needed).
+
+
+
+---
+
+8. Codebase Stability
+
+Remove unused components.
+
+Fix TypeScript errors.
+
+Optimize assets.
+
+Make sure imports are valid.
+
+Ensure components render without hydration issues.
+
+
+
+---
+
+9. UI Enhancements
+
+Add floating Celo-yellow neon borders.
+
+Keep UI modern, animated, and fun.
+
+Keep colors Celo-themed: yellow, green, black.
+
+Add subtle hover animations to buttons.
+
+
+
+---
+
+🧠 TASK FOR THE AGENT
+
+1. Analyze the ENTIRE existing project.
+
+
+2. Fix all wallet errors.
+
+
+3. Fix all MiniPay detection and connection logic.
+
+
+4. Integrate wagmi properly.
+
+
+6. Rewrite the gameplay container so:
+
+planets at top right
+
+rocket at bottom left
+
+smoke trail
+
+random landing highlight
+
+
+
+7. Add smart contract if missing.
+
+
+8. Ensure everything builds and runs on Replit preview.
+
+
+9. Prepare the project for Vercel deployment.
+
+
+10. Do NOT delete working features.
