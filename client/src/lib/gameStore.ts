@@ -1,6 +1,41 @@
 import { create } from "zustand";
 import type { WalletState, Planet, GameState, User, Prediction } from "@shared/schema";
-import { PLANETS } from "@shared/schema";
+
+// Export PLANETS constant to make it available for import
+export const PLANETS = [
+  {
+    id: "earth",
+    name: "Earth",
+    color: "blue",
+    chance: 50,
+    xp: 50,
+    image: "/images/planets/blue_earth-like_planet.png"
+  },
+  {
+    id: "mars",
+    name: "Mars",
+    color: "red",
+    chance: 30,
+    xp: 100,
+    image: "/images/planets/red_mars-like_planet.png"
+  },
+  {
+    id: "saturn",
+    name: "Saturn",
+    color: "yellow",
+    chance: 15,
+    xp: 200,
+    image: "/images/planets/golden_ringed_saturn_planet.png"
+  },
+  {
+    id: "ice-planet",
+    name: "Ice Planet",
+    color: "cyan",
+    chance: 5,
+    xp: 500,
+    image: "/images/planets/ice_crystal_blue_planet.png"
+  }
+];
 
 interface GameStore {
   wallet: WalletState;
