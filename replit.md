@@ -104,10 +104,11 @@ Preferred communication style: Simple, everyday language.
 - Explorer: https://alfajores.celoscan.io
 
 **Wallet Connection:**
-- Primary: MiniPay wallet detection via `window.ethereum.isMiniPay`
-- Fallback: Standard Web3 wallet via WalletConnect
+- MiniPay-only: Wallet detection via `window.ethereum.isMiniPay`
+- Auto-connect feature in MiniPay browser environment
+- Desktop browsers show prompt to open in MiniPay
 - Viem library for blockchain interactions
-- Automatic network switching to Alfajores
+- Legacy transaction format with feeCurrency for MiniPay compatibility
 
 **Token Support:**
 - Native CELO token balance tracking

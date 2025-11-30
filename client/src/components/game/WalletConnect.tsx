@@ -1,123 +1,52 @@
 import { useState, useEffect } from "react";
-import { Wallet, ExternalLink, Copy, Check, Loader2, AlertCircle } from "lucide-react";
+import { Wallet, ExternalLink, Copy, Check, Loader2, AlertCircle, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useGameStore } from "@/lib/gameStore";
+import { useWalletContext } from "@/components/WalletProvider";
 import { 
-  connectWithPriority,
-  connectWallet,
-  isMiniPay,
-  isValora,
-  isWalletAvailable, 
+  connectMiniPayDirect,
   shortenAddress,
   getcUSDBalance,
-  switchToAlfajores,
   CELO_ALFAJORES_CONFIG,
-  type ConnectStatus,
 } from "@/lib/wallet";
+import { getMiniPayDeepLink } from "@/lib/minipay-mcp";
 
 export function WalletConnect() {
   const { wallet, setWallet } = useGameStore();
+  const { isMiniPayEnv, isAutoConnecting, retryAutoConnect } = useWalletContext();
   const [isConnecting, setIsConnecting] = useState(false);
-  const [connectStatus, setConnectStatus] = useState<ConnectStatus | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [cUSDBalance, setcUSDBalance] = useState("0");
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isMiniPay() || isValora()) {
-      handleConnect();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
     if (wallet.address) {
-      getcUSDBalance(wallet.address).then(setcUSDBalance);
+      getcUSDBalance(wallet.address).then(setcUSDBalance).catch(console.error);
     }
   }, [wallet.address]);
 
-  useEffect(() => {
-    // Dynamically import MiniPay MCP only in browser environment
-    if (typeof window !== 'undefined') {
-      import('@/lib/minipay-mcp').then((module) => {
-        console.log('[WalletConnect] MiniPay MCP loaded:', module);
-      }).catch((err) => {
-        console.warn('[WalletConnect] MiniPay MCP not available:', err);
-      });
-    }
-  }, []);
-
-  const handleConnect = async () => {
+  const handleMiniPayConnect = async () => {
     setIsConnecting(true);
     setConnectionError(null);
-    setConnectStatus("trying_minipay");
 
     try {
-      await switchToAlfajores();
-      const result = await connectWithPriority();
-
-      if (result.status === "connected" && result.wallet) {
-        setWallet(result.wallet);
-        setConnectStatus("connected");
-
-        const balance = await getcUSDBalance(result.wallet.address!);
-        setcUSDBalance(balance);
-
-        toast({
-          title: "Wallet Connected",
-          description: result.wallet.isMiniPay 
-            ? "Connected with MiniPay!" 
-            : `Connected: ${shortenAddress(result.wallet.address || "")}`,
-        });
-      } else {
-        setConnectStatus("failed");
-        setConnectionError(result.error || "Unknown error");
-        toast({
-          title: "Connection Failed",
-          description: result.error || "Failed to connect wallet",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Connection error:", error);
-      setConnectStatus("failed");
-      setConnectionError(error instanceof Error ? error.message : "Failed to connect wallet");
-      toast({
-        title: "Connection Failed",
-        description: error instanceof Error ? error.message : "Failed to connect wallet",
-        variant: "destructive",
-      });
-    } finally {
-      setIsConnecting(false);
-    }
-  };
-
-  const handleWagmiConnect = async () => {
-    setIsConnecting(true);
-    setConnectionError(null);
-    setConnectStatus("connecting_wallet");
-
-    try {
-      await switchToAlfajores();
-      const walletState = await connectWallet("wagmi");
+      const walletState = await connectMiniPayDirect();
       setWallet(walletState);
-      setConnectStatus("connected");
 
       const balance = await getcUSDBalance(walletState.address!);
       setcUSDBalance(balance);
 
       toast({
         title: "Wallet Connected",
-        description: `Connected: ${shortenAddress(walletState.address || "")}`,
+        description: "Connected with MiniPay!",
       });
     } catch (error) {
-      console.error("Wagmi connection error:", error);
-      setConnectStatus("failed");
+      console.error("MiniPay connection error:", error);
       setConnectionError(error instanceof Error ? error.message : "Failed to connect wallet");
       toast({
         title: "Connection Failed",
@@ -137,50 +66,66 @@ export function WalletConnect() {
     }
   };
 
-  const getStatusMessage = (): string => {
-    switch (connectStatus) {
-      case "trying_minipay":
-        return "Trying MiniPay...";
-      case "trying_valora":
-        return "Trying Valora...";
-      case "minipay_timeout":
-        return "MiniPay timeout — falling back...";
-      case "valora_timeout":
-        return "Valora timeout — falling back...";
-      case "connecting_wallet":
-        return "Connecting wallet...";
-      case "connected":
-        return "Connected";
-      case "failed":
-        return "Connection failed";
-      default:
-        return "Connect your wallet";
-    }
+  const openInMiniPay = () => {
+    const deepLink = getMiniPayDeepLink();
+    window.open(deepLink, "_blank");
   };
 
-  if (!isWalletAvailable()) {
+  const isLoading = isConnecting || isAutoConnecting;
+
+  if (!isMiniPayEnv) {
     return (
       <Card className="border-white/10 bg-gradient-to-b from-space-purple/30 to-space-dark/50">
         <CardContent className="pt-6">
           <div className="flex flex-col items-center gap-4 text-center">
-            <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center">
-              <Wallet className="w-8 h-8 text-destructive" />
+            <div className="w-16 h-16 rounded-full bg-celo-green/20 flex items-center justify-center">
+              <Smartphone className="w-8 h-8 text-celo-green" />
             </div>
             <div>
-              <h3 className="font-semibold text-lg">No Wallet Detected</h3>
+              <h3 className="font-semibold text-lg">MiniPay Required</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Please install MiniPay, Valora, or a compatible wallet to play RocketMint.
+                RocketMint works best with MiniPay. Open this app in MiniPay to connect your wallet and play.
               </p>
             </div>
-            <Button 
-              variant="outline" 
-              className="gap-2"
-              onClick={() => window.open("https://www.opera.com/products/minipay", "_blank")}
-              data-testid="button-get-minipay"
-            >
-              Get MiniPay
-              <ExternalLink className="w-4 h-4" />
-            </Button>
+            <div className="flex flex-col gap-2 w-full">
+              <Button 
+                className="gap-2 bg-celo-gradient hover:brightness-110"
+                onClick={openInMiniPay}
+                data-testid="button-open-minipay"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Open in MiniPay
+              </Button>
+              <Button 
+                variant="outline" 
+                className="gap-2"
+                onClick={() => window.open("https://www.opera.com/products/minipay", "_blank")}
+                data-testid="button-get-minipay"
+              >
+                Get MiniPay
+                <ExternalLink className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isAutoConnecting) {
+    return (
+      <Card className="border-white/10 bg-gradient-to-b from-space-purple/30 to-space-dark/50">
+        <CardContent className="pt-6">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <div className="w-16 h-16 rounded-full bg-celo-green/20 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-celo-green animate-spin" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Connecting to MiniPay</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Auto-connecting your wallet...
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -193,7 +138,7 @@ export function WalletConnect() {
         <CardContent className="pt-6">
           <div className="flex flex-col items-center gap-4 text-center">
             <div className="w-16 h-16 rounded-full bg-celo-green/20 flex items-center justify-center">
-              {isConnecting ? (
+              {isLoading ? (
                 <Loader2 className="w-8 h-8 text-celo-green animate-spin" />
               ) : (
                 <Wallet className="w-8 h-8 text-celo-green" />
@@ -202,7 +147,7 @@ export function WalletConnect() {
             <div>
               <h3 className="font-semibold text-lg">Connect Your Wallet</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {getStatusMessage()}
+                {isLoading ? "Connecting to MiniPay..." : "Tap to connect with MiniPay"}
               </p>
             </div>
 
@@ -213,38 +158,24 @@ export function WalletConnect() {
               </Alert>
             )}
 
-            <div className="flex flex-col gap-2 w-full">
-              <Button 
-                onClick={handleConnect}
-                disabled={isConnecting}
-                className="gap-2 bg-celo-gradient hover:brightness-110"
-                data-testid="button-connect-wallet"
-              >
-                {isConnecting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {getStatusMessage()}
-                  </>
-                ) : (
-                  <>
-                    <Wallet className="w-4 h-4" />
-                    Connect Wallet
-                  </>
-                )}
-              </Button>
-
-              {connectStatus === "failed" && (
-                <Button 
-                  onClick={handleWagmiConnect}
-                  disabled={isConnecting}
-                  variant="outline"
-                  className="gap-2"
-                  data-testid="button-try-wagmi"
-                >
-                  Try Manual Connect (Wagmi)
-                </Button>
+            <Button 
+              onClick={handleMiniPayConnect}
+              disabled={isLoading}
+              className="w-full gap-2 bg-celo-gradient hover:brightness-110"
+              data-testid="button-connect-wallet"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <Wallet className="w-4 h-4" />
+                  Connect with MiniPay
+                </>
               )}
-            </div>
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -255,14 +186,14 @@ export function WalletConnect() {
     <Card className="border-white/10 bg-gradient-to-b from-space-purple/30 to-space-dark/50">
       <CardContent className="pt-6">
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-celo-green/20 flex items-center justify-center">
                 <Wallet className="w-5 h-5 text-celo-green" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm">
+                  <span className="font-mono text-sm" data-testid="text-wallet-address">
                     {shortenAddress(wallet.address || "")}
                   </span>
                   <button
@@ -277,12 +208,10 @@ export function WalletConnect() {
                     )}
                   </button>
                 </div>
-                <div className="flex items-center gap-2 mt-1">
-                  {wallet.isMiniPay && (
-                    <Badge variant="secondary" className="text-xs bg-celo-green/20 text-celo-green border-celo-green/30">
-                      MiniPay
-                    </Badge>
-                  )}
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <Badge variant="secondary" className="text-xs bg-celo-green/20 text-celo-green border-celo-green/30">
+                    MiniPay
+                  </Badge>
                   <Badge variant="outline" className="text-xs">
                     Alfajores
                   </Badge>
@@ -325,11 +254,9 @@ export function WalletStatus() {
       <span className="font-mono text-xs text-muted-foreground">
         {shortenAddress(wallet.address || "")}
       </span>
-      {wallet.isMiniPay && (
-        <Badge variant="secondary" className="text-xs h-5 bg-celo-green/20 text-celo-green border-none">
-          MiniPay
-        </Badge>
-      )}
+      <Badge variant="secondary" className="text-xs h-5 bg-celo-green/20 text-celo-green border-none">
+        MiniPay
+      </Badge>
     </div>
   );
 }

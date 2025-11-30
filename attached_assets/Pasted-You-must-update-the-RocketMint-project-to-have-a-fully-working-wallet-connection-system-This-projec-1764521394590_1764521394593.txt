@@ -1,0 +1,180 @@
+You must update the RocketMint project to have a fully working wallet connection system.
+This project MUST support both MiniPay and normal browsers.
+
+
+---
+
+1. Analyze entire repo first
+
+Identify every file related to wallet connection, hooks, providers, context, and network settings.
+
+List exactly what is broken or misconfigured.
+
+THEN start fixing.
+
+
+
+---
+
+2. Implement Correct MiniPay Detection + Connection
+
+Use this logic:
+
+const isMiniPay = typeof window !== "undefined" && window.ethereum && window.ethereum.isMiniPay;
+
+When isMiniPay === true, do ALL of the following:
+
+Hide the “Connect Wallet” button
+
+Automatically connect using:
+
+
+import { createWalletClient, custom } from "viem";
+import { celo, celoSepolia } from "viem/chains";
+
+const client = createWalletClient({
+  chain: celoSepolia, // or celo testnet depending on config
+  transport: custom(window.ethereum),
+});
+
+// This returns the MiniPay user's address
+const [address] = await client.getAddresses();
+
+Ensure all interactions use feeCurrency: "0x765d…cUSD" (MiniPay only allows cUSD as fee currency)
+
+Ensure transactions use legacy fields only, NOT EIP-1559.
+
+
+
+---
+
+3. Implement Normal Browser Wallet Using Wagmi
+
+When isMiniPay === false, we must:
+
+Show Connect Wallet button
+
+Connect using wagmi + viem
+
+Use Celo Alfajores or Celo Sepolia
+
+Ensure the provider is not overwritten
+
+Ensure wallet connectors include:
+
+MetaMask
+
+Coinbase Wallet (optional)
+
+WalletConnect
+
+
+
+Make sure wagmi setup is correct and has no missing dependencies.
+
+
+---
+
+4. Fix All Connection Failures
+
+Specifically ensure:
+
+No “failed to connect wallet” error
+
+No undefined window.ethereum issues
+
+No mismatched chain IDs
+
+No missing providers in app root
+
+
+
+---
+
+5. Update UI to match these rules
+
+Inside MiniPay: auto-connect → show the address in the header
+
+Outside MiniPay: show Connect Wallet → once connected, display address
+
+If not connected: wallet-dependent actions should be disabled
+
+
+
+---
+
+6. Make Sure The Smart Contract Interactions Work for Both Modes
+
+viem client for MiniPay
+
+wagmi client for normal browsers
+
+Both must call the same contract
+
+Contract must be deployed on Celo testnet
+
+Transaction format must satisfy MiniPay’s requirement:
+
+Only legacy tx
+
+Using feeCurrency
+
+No EIP-1559 fields
+
+
+
+
+---
+
+7. Use These Docs when fixing
+
+https://docs.celo.org/build-on-celo/build-on-minipay/quickstart
+
+https://github.com/celo-org/composer-kit-mcp
+
+
+Follow the guides EXACTLY—no guessing.
+
+
+---
+
+8. After Fixing Wallet, Run Full Stabilization Pass
+
+Fix:
+
+Any UI errors
+
+Any missing imports
+
+Any failing hooks
+
+Any incorrect Celo MCP config
+
+Any missing dependencies
+
+Any Vercel deployment blockers
+
+Any unused/invalid code
+
+
+Then test the app locally.
+
+
+---
+
+9. Output
+
+After patching everything, you MUST:
+
+Print a full explanation of what you fixed
+
+Print the final folder structure
+
+Confirm the wallet connects in both modes
+
+Confirm transactions can run
+
+Confirm the build compiles
+
+Confirm nothing breaks on Vercel
+

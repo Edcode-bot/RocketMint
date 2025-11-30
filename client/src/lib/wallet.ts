@@ -1,14 +1,13 @@
-
-import { createWalletClient, createPublicClient, custom, http, formatEther } from "viem";
-import { celoAlfajores } from "viem/chains";
+import { createWalletClient, createPublicClient, custom, http, formatEther, type WalletClient, type PublicClient, type Account } from "viem";
+import { celoAlfajores, celo } from "viem/chains";
 import type { WalletState } from "@shared/schema";
-import { isMiniPayMCP, connectMiniPayMCP } from "./minipay-mcp";
 
 declare global {
   interface Window {
     ethereum?: {
       isMiniPay?: boolean;
       isValora?: boolean;
+      isOpera?: boolean;
       request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
       on: (event: string, callback: (...args: unknown[]) => void) => void;
       removeListener: (event: string, callback: (...args: unknown[]) => void) => void;
@@ -31,11 +30,20 @@ export const CELO_ALFAJORES_CONFIG = {
 export const cUSD_ADDRESS = "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1" as const;
 
 export function isMiniPay(): boolean {
-  return isMiniPayMCP();
+  if (typeof window === "undefined") return false;
+  return !!(
+    window.ethereum?.isMiniPay === true ||
+    window.ethereum?.isOpera === true ||
+    window.navigator.userAgent.toLowerCase().includes("minipay")
+  );
 }
 
 export function isValora(): boolean {
-  return typeof window !== "undefined" && !!window.ethereum?.isValora;
+  if (typeof window === "undefined") return false;
+  return !!(
+    window.ethereum?.isValora === true ||
+    window.navigator.userAgent.toLowerCase().includes("valora")
+  );
 }
 
 export function detectMiniPayEnvironment(): boolean {
@@ -43,6 +51,7 @@ export function detectMiniPayEnvironment(): boolean {
   const userAgent = window.navigator.userAgent.toLowerCase();
   return (
     window.ethereum?.isMiniPay === true ||
+    window.ethereum?.isOpera === true ||
     userAgent.includes("minipay") ||
     userAgent.includes("opera")
   );
@@ -72,72 +81,48 @@ export interface ConnectResult {
   error?: string;
 }
 
-async function tryMiniPayConnect(timeout: number = 4000): Promise<WalletState> {
-  if (!isMiniPay() && !detectMiniPayEnvironment()) {
-    throw new Error("MiniPay not detected");
-  }
-
-  return Promise.race([
-    connectWallet("minipay"),
-    new Promise<WalletState>((_, reject) =>
-      setTimeout(() => reject(new Error("MiniPay timeout")), timeout)
-    ),
-  ]);
-}
-
-async function tryValoraConnect(timeout: number = 4000): Promise<WalletState> {
-  if (!isValora() && !detectValoraEnvironment()) {
-    throw new Error("Valora not detected");
-  }
-
-  return Promise.race([
-    connectWallet("valora"),
-    new Promise<WalletState>((_, reject) =>
-      setTimeout(() => reject(new Error("Valora timeout")), timeout)
-    ),
-  ]);
-}
-
-export async function connectWithPriority(): Promise<ConnectResult> {
-  // Try MiniPay first (4s timeout)
-  if (isMiniPay() || detectMiniPayEnvironment()) {
-    try {
-      const wallet = await tryMiniPayConnect(4000);
-      return { status: "connected", wallet };
-    } catch (error) {
-      console.log("[Wallet] MiniPay timeout, trying Valora...");
-    }
-  }
-
-  // Try Valora second (4s timeout)
-  if (isValora() || detectValoraEnvironment()) {
-    try {
-      const wallet = await tryValoraConnect(4000);
-      return { status: "connected", wallet };
-    } catch (error) {
-      console.log("[Wallet] Valora timeout, falling back to wagmi...");
-    }
-  }
-
-  // Fallback to wagmi
-  try {
-    const wallet = await connectWallet("wagmi");
-    return { status: "connected", wallet };
-  } catch (error) {
-    return {
-      status: "failed",
-      error: error instanceof Error ? error.message : "Connection failed",
-    };
-  }
-}
-
 export function isWalletAvailable(): boolean {
   return typeof window !== "undefined" && !!window.ethereum;
+}
+
+export async function connectMiniPayDirect(): Promise<WalletState> {
+  if (!window.ethereum) {
+    throw new Error("MiniPay not detected. Please open in MiniPay browser.");
+  }
+
+  try {
+    const accounts = await window.ethereum.request({
+      method: "eth_requestAccounts",
+      params: [],
+    }) as string[];
+    
+    if (!accounts || accounts.length === 0) {
+      throw new Error("No accounts found. Please approve the connection in MiniPay.");
+    }
+    
+    const address = accounts[0];
+    const balance = await getBalance(address);
+    
+    return {
+      address,
+      isConnected: true,
+      isMiniPay: true,
+      balance,
+      chainId: celoAlfajores.id,
+    };
+  } catch (error) {
+    console.error("[MiniPay] Direct connection failed:", error);
+    throw error;
+  }
 }
 
 export async function connectWallet(preferredProvider: "minipay" | "valora" | "wagmi" = "wagmi"): Promise<WalletState> {
   if (!isWalletAvailable()) {
     throw new Error("No wallet detected. Please install MiniPay, Valora, or a compatible wallet.");
+  }
+
+  if (preferredProvider === "minipay" && isMiniPay()) {
+    return connectMiniPayDirect();
   }
 
   try {
@@ -170,9 +155,63 @@ export async function connectWallet(preferredProvider: "minipay" | "valora" | "w
   }
 }
 
-export async function getBalance(address: string): Promise<string> {
-  if (!isWalletAvailable()) return "0";
+async function tryMiniPayConnect(timeout: number = 4000): Promise<WalletState> {
+  if (!isMiniPay() && !detectMiniPayEnvironment()) {
+    throw new Error("MiniPay not detected");
+  }
 
+  return Promise.race([
+    connectMiniPayDirect(),
+    new Promise<WalletState>((_, reject) =>
+      setTimeout(() => reject(new Error("MiniPay timeout")), timeout)
+    ),
+  ]);
+}
+
+async function tryValoraConnect(timeout: number = 4000): Promise<WalletState> {
+  if (!isValora() && !detectValoraEnvironment()) {
+    throw new Error("Valora not detected");
+  }
+
+  return Promise.race([
+    connectWallet("valora"),
+    new Promise<WalletState>((_, reject) =>
+      setTimeout(() => reject(new Error("Valora timeout")), timeout)
+    ),
+  ]);
+}
+
+export async function connectWithPriority(): Promise<ConnectResult> {
+  if (isMiniPay() || detectMiniPayEnvironment()) {
+    try {
+      const wallet = await tryMiniPayConnect(4000);
+      return { status: "connected", wallet };
+    } catch (error) {
+      console.log("[Wallet] MiniPay connection failed, trying Valora...", error);
+    }
+  }
+
+  if (isValora() || detectValoraEnvironment()) {
+    try {
+      const wallet = await tryValoraConnect(4000);
+      return { status: "connected", wallet };
+    } catch (error) {
+      console.log("[Wallet] Valora connection failed, falling back to generic...", error);
+    }
+  }
+
+  try {
+    const wallet = await connectWallet("wagmi");
+    return { status: "connected", wallet };
+  } catch (error) {
+    return {
+      status: "failed",
+      error: error instanceof Error ? error.message : "Connection failed",
+    };
+  }
+}
+
+export async function getBalance(address: string): Promise<string> {
   try {
     const publicClient = createPublicClient({
       chain: celoAlfajores,
@@ -191,8 +230,6 @@ export async function getBalance(address: string): Promise<string> {
 }
 
 export async function getcUSDBalance(address: string): Promise<string> {
-  if (!isWalletAvailable()) return "0";
-
   try {
     const publicClient = createPublicClient({
       chain: celoAlfajores,
@@ -221,7 +258,18 @@ export async function getcUSDBalance(address: string): Promise<string> {
   }
 }
 
-export function getWalletClient() {
+export function getMiniPayWalletClient(): WalletClient {
+  if (!window.ethereum) {
+    throw new Error("Wallet not available");
+  }
+
+  return createWalletClient({
+    chain: celoAlfajores,
+    transport: custom(window.ethereum),
+  });
+}
+
+export function getWalletClient(): WalletClient {
   if (!isWalletAvailable()) {
     throw new Error("Wallet not available");
   }
@@ -232,7 +280,7 @@ export function getWalletClient() {
   });
 }
 
-export function getPublicClient() {
+export function getPublicClient(): PublicClient {
   return createPublicClient({
     chain: celoAlfajores,
     transport: http(),
@@ -246,6 +294,7 @@ export function shortenAddress(address: string): string {
 
 export async function switchToAlfajores(): Promise<void> {
   if (!isWalletAvailable()) return;
+  if (isMiniPay()) return;
 
   try {
     await window.ethereum!.request({
@@ -267,7 +316,7 @@ export async function switchToAlfajores(): Promise<void> {
         ],
       });
     } else {
-      throw switchError;
+      console.error("[Wallet] Failed to switch to Alfajores:", switchError);
     }
   }
 }
