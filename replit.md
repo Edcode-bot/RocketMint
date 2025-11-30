@@ -2,7 +2,15 @@
 
 ## Overview
 
-RocketMint is a mobile-first prediction game built on the Celo blockchain (Alfajores testnet). Players predict which planet a rocket will land on, earn XP rewards for correct predictions, and compete on a leaderboard. The application integrates with MiniPay wallet and follows a space-gaming aesthetic with Celo-green accents.
+RocketMint is a mobile-first prediction game built on the Celo blockchain (Alfajores testnet). Players predict which planet a rocket will land on, earn XP rewards for correct predictions, and compete on a leaderboard. The application integrates with MiniPay wallet and follows a space-gaming aesthetic with Celo-green and yellow accents.
+
+**Current State (November 2024):**
+- In-memory storage (MemStorage) for development - Firebase integration planned post-deadline
+- Animated space background with stars and nebula
+- Rocket with smoke trail animations
+- Planet carousel with multiplier badges
+- MiniPay-first wallet connection with fallback to Valora and WalletConnect
+- Celo theme: green (#35D07F) and yellow (#FCBA03) accents with neon glow effects
 
 **Core Mechanics:**
 - Players select a planet prediction from 5 options (Mars, Terra, Saturn, Nebula, Frost)

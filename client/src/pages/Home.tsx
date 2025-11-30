@@ -13,7 +13,6 @@ import { useGameStore, getRandomPlanet, calculateXP, getPlanetById, getRandomPla
 import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { saveGameResult } from "@/lib/firestore";
 import spaceBackground from "@assets/generated_images/deep_space_nebula_background.png";
 
 export default function Home() {
@@ -153,16 +152,16 @@ export default function Home() {
 
             setShowResults(true);
 
-            // Save to Firestore (client-side for now, move to Cloud Functions for security)
-            if (user && wallet.address) {
-              saveGameResult({
-                walletAddress: wallet.address,
-                username: user.username,
+            // Update user stats in memory
+            if (user) {
+              setUser({
+                ...user,
                 xp: user.xp + xpEarned,
                 totalPredictions: user.totalPredictions + 1,
                 correctPredictions: won ? user.correctPredictions + 1 : user.correctPredictions,
-                timestamp: Date.now()
-              }).catch(err => console.error("[RocketMint] Failed to save to Firestore:", err));
+                currentStreak: won ? user.currentStreak + 1 : 0,
+                bestStreak: won && user.currentStreak + 1 > user.bestStreak ? user.currentStreak + 1 : user.bestStreak,
+              });
             }
 
             // Console log for debugging and on-chain integration
@@ -249,6 +248,7 @@ export default function Home() {
             isLaunching={isLaunching}
             isShaking={isShaking}
             disabled={isLaunching || isShaking}
+            landedPlanetId={showResults ? lastResult?.landedPlanet?.id : undefined}
           />
         </section>
 
