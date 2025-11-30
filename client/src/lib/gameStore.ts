@@ -4,33 +4,33 @@ import type { WalletState, Planet, GameState, User, Prediction } from "@shared/s
 // Planet definitions with proper colors for SVG rendering
 export const PLANETS: Planet[] = [
   {
-    id: "earth",
-    name: "Earth",
-    color: "blue",
+    id: 1,
+    name: "Terra",
+    color: "#3498DB",
     chance: 50,
     xp: 50,
     image: "/images/planets/blue_earth-like_planet.png"
   },
   {
-    id: "mars",
+    id: 2,
     name: "Mars",
-    color: "red",
+    color: "#E74C3C",
     chance: 30,
     xp: 100,
     image: "/images/planets/red_mars-like_planet.png"
   },
   {
-    id: "saturn",
+    id: 3,
     name: "Saturn",
-    color: "yellow",
+    color: "#F39C12",
     chance: 15,
     xp: 200,
     image: "/images/planets/golden_ringed_saturn_planet.png"
   },
   {
-    id: "ice-planet",
-    name: "Ice Planet",
-    color: "cyan",
+    id: 4,
+    name: "Frost",
+    color: "#1ABC9C",
     chance: 5,
     xp: 500,
     image: "/images/planets/ice_crystal_blue_planet.png"

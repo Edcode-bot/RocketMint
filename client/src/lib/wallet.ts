@@ -284,7 +284,7 @@ export function getPublicClient(): PublicClient {
   return createPublicClient({
     chain: celoAlfajores,
     transport: http(),
-  });
+  }) as PublicClient;
 }
 
 export function shortenAddress(address: string): string {
