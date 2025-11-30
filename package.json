@@ -62,7 +62,7 @@
     "express-session": "^1.18.1",
     "firebase": "^12.6.0",
     "framer-motion": "^11.13.1",
-    "hardhat": "^3.0.16",
+    "hardhat": "^2.27.1",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.453.0",
     "memorystore": "^1.6.7",
