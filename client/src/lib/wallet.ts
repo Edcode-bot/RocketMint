@@ -2,6 +2,7 @@
 import { createWalletClient, createPublicClient, custom, http, formatEther } from "viem";
 import { celoAlfajores } from "viem/chains";
 import type { WalletState } from "@shared/schema";
+import { isMiniPayMCP, connectMiniPayMCP } from "./minipay-mcp";
 
 declare global {
   interface Window {
@@ -30,7 +31,7 @@ export const CELO_ALFAJORES_CONFIG = {
 export const cUSD_ADDRESS = "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1" as const;
 
 export function isMiniPay(): boolean {
-  return typeof window !== "undefined" && !!window.ethereum?.isMiniPay;
+  return isMiniPayMCP();
 }
 
 export function isValora(): boolean {

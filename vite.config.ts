@@ -2,6 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+import { cartographer } from "@replit/vite-plugin-cartographer";
+import { devBanner } from "@replit/vite-plugin-dev-banner";
 
 export default defineConfig({
   plugins: [
@@ -10,12 +12,8 @@ export default defineConfig({
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
-          await import("@replit/vite-plugin-dev-banner").then((m) =>
-            m.devBanner(),
-          ),
+          cartographer(),
+          devBanner(),
         ]
       : []),
   ],
@@ -30,11 +28,25 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          viem: ['viem'],
+        }
+      }
+    }
   },
   server: {
     fs: {
       strict: true,
       deny: ["**/.*"],
     },
+    host: '0.0.0.0',
+    port: 5000
   },
+  preview: {
+    host: '0.0.0.0',
+    port: 5000
+  }
 });

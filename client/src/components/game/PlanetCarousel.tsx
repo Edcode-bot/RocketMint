@@ -2,20 +2,7 @@ import { cn } from "@/lib/utils";
 import { PLANETS, type Planet } from "@shared/schema";
 import { useGameStore } from "@/lib/gameStore";
 
-import marsImage from "@assets/generated_images/red_mars-like_planet.png";
-import terraImage from "@assets/generated_images/blue_earth-like_planet.png";
-import saturnImage from "@assets/generated_images/golden_ringed_saturn_planet.png";
-import nebulaImage from "@assets/generated_images/purple_nebula_mystical_planet.png";
-import frostImage from "@assets/generated_images/ice_crystal_blue_planet.png";
 import { PlanetSVG } from "./PlanetSVG";
-
-const planetImages: Record<number, string> = {
-  1: marsImage,
-  2: terraImage,
-  3: saturnImage,
-  4: nebulaImage,
-  5: frostImage,
-};
 
 interface PlanetCarouselProps {
   onSelect?: (planet: Planet) => void;
@@ -92,14 +79,10 @@ export function PlanetDisplay({ planet, size = "md" }: { planet: Planet; size?: 
 
   return (
     <div className={cn(
-      "relative rounded-full overflow-hidden",
+      "relative",
       sizeClasses[size]
     )}>
-      <img
-        src={planetImages[planet.id]}
-        alt={planet.name}
-        className="w-full h-full object-cover"
-      />
+      <PlanetSVG planetId={planet.id} size={size} className="w-full h-full drop-shadow-2xl" />
     </div>
   );
 }

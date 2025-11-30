@@ -33,6 +33,7 @@ export function WalletConnect() {
     if (isMiniPay() || isValora()) {
       handleConnect();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

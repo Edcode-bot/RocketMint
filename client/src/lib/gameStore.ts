@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import type { WalletState, Planet, GameState, User, Prediction } from "@shared/schema";
 
-// Export PLANETS constant to make it available for import
-export const PLANETS = [
+// Planet definitions with proper colors for SVG rendering
+export const PLANETS: Planet[] = [
   {
     id: "earth",
     name: "Earth",

@@ -1,0 +1,8 @@
+
+{
+  "address": "0x0000000000000000000000000000000000000000",
+  "network": "alfajores",
+  "deployer": "pending",
+  "timestamp": "pending-deployment",
+  "note": "Run 'npm run deploy:contract' to deploy and update this file"
+}
