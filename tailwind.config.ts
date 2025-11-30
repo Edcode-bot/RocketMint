@@ -6,12 +6,11 @@ export default {
   theme: {
     extend: {
       borderRadius: {
-        lg: ".5625rem", /* 9px */
-        md: ".375rem", /* 6px */
-        sm: ".1875rem", /* 3px */
+        lg: ".5625rem",
+        md: ".375rem",
+        sm: ".1875rem",
       },
       colors: {
-        // Flat / base colors (regular buttons)
         background: "hsl(var(--background) / <alpha-value>)",
         foreground: "hsl(var(--foreground) / <alpha-value>)",
         border: "hsl(var(--border) / <alpha-value>)",
@@ -81,11 +80,22 @@ export default {
           busy: "rgb(239 68 68)",
           offline: "rgb(156 163 175)",
         },
+        space: {
+          dark: "#0A0E27",
+          darker: "#060818",
+          purple: "#1A1F3A",
+          blue: "#2D3561",
+        },
+        celo: {
+          green: "#35D07F",
+          greenDark: "#2DB872",
+          greenLight: "#4AE895",
+        },
       },
       fontFamily: {
-        sans: ["var(--font-sans)"],
-        serif: ["var(--font-serif)"],
-        mono: ["var(--font-mono)"],
+        sans: ["Inter", "system-ui", "sans-serif"],
+        display: ["Space Grotesk", "Inter", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "monospace"],
       },
       keyframes: {
         "accordion-down": {
@@ -96,10 +106,79 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "rocket-launch": {
+          "0%": { transform: "translateY(0) scale(1)", opacity: "1" },
+          "20%": { transform: "translateY(-5px) scale(1.02)" },
+          "40%": { transform: "translateY(-20px) scale(1.05)" },
+          "100%": { transform: "translateY(-100vh) scale(0.8)", opacity: "0" },
+        },
+        "rocket-shake": {
+          "0%, 100%": { transform: "translateX(0) rotate(0deg)" },
+          "25%": { transform: "translateX(-2px) rotate(-0.5deg)" },
+          "50%": { transform: "translateX(2px) rotate(0.5deg)" },
+          "75%": { transform: "translateX(-1px) rotate(-0.25deg)" },
+        },
+        "planet-float": {
+          "0%, 100%": { transform: "translateY(0) rotate(0deg)" },
+          "50%": { transform: "translateY(-8px) rotate(3deg)" },
+        },
+        "planet-glow": {
+          "0%, 100%": { boxShadow: "0 0 20px rgba(53, 208, 127, 0.3)" },
+          "50%": { boxShadow: "0 0 40px rgba(53, 208, 127, 0.6)" },
+        },
+        "pulse-ring": {
+          "0%": { transform: "scale(1)", opacity: "1" },
+          "100%": { transform: "scale(1.5)", opacity: "0" },
+        },
+        "stars-twinkle": {
+          "0%, 100%": { opacity: "0.3" },
+          "50%": { opacity: "1" },
+        },
+        "countdown-pulse": {
+          "0%, 100%": { transform: "scale(1)", opacity: "1" },
+          "50%": { transform: "scale(1.1)", opacity: "0.8" },
+        },
+        "xp-increment": {
+          "0%": { transform: "translateY(0)", opacity: "1" },
+          "100%": { transform: "translateY(-20px)", opacity: "0" },
+        },
+        "slide-up": {
+          "0%": { transform: "translateY(20px)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "bounce-subtle": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-4px)" },
+        },
+        "thruster-flicker": {
+          "0%, 100%": { opacity: "0.8", transform: "scaleY(1)" },
+          "50%": { opacity: "1", transform: "scaleY(1.2)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "rocket-launch": "rocket-launch 3s ease-in forwards",
+        "rocket-shake": "rocket-shake 0.1s ease-in-out infinite",
+        "planet-float": "planet-float 4s ease-in-out infinite",
+        "planet-glow": "planet-glow 2s ease-in-out infinite",
+        "pulse-ring": "pulse-ring 1.5s ease-out infinite",
+        "stars-twinkle": "stars-twinkle 3s ease-in-out infinite",
+        "countdown-pulse": "countdown-pulse 1s ease-in-out infinite",
+        "xp-increment": "xp-increment 1s ease-out forwards",
+        "slide-up": "slide-up 0.5s ease-out forwards",
+        "fade-in": "fade-in 0.3s ease-out forwards",
+        "bounce-subtle": "bounce-subtle 2s ease-in-out infinite",
+        "thruster-flicker": "thruster-flicker 0.15s ease-in-out infinite",
+      },
+      backgroundImage: {
+        "space-gradient": "linear-gradient(180deg, #0A0E27 0%, #1A1F3A 50%, #0A0E27 100%)",
+        "celo-gradient": "linear-gradient(135deg, #35D07F 0%, #2DB872 100%)",
+        "card-gradient": "linear-gradient(135deg, rgba(26, 31, 58, 0.8) 0%, rgba(10, 14, 39, 0.9) 100%)",
       },
     },
   },
