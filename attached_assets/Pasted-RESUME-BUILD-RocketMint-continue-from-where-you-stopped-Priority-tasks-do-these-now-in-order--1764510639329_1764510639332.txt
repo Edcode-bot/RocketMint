@@ -1,0 +1,23 @@
+RESUME BUILD: RocketMint — continue from where you stopped.
+
+Priority tasks (do these now, in order):
+1. Move the planet carousel so the planets render **above** the rocket and both are inside a single "GameSection" container/box. Make the box fixed-height on mobile with responsive scaling.
+2. Speed up wallet connect UX:
+   - Detect MiniPay environment (userAgent / window.navigator) and attempt MiniPay connect first.
+   - If MiniPay is not available or connection is slow (>5s), fall back to wagmi (MetaMask / WalletConnect).
+   - Add user-visible connect status and approximate timings.
+3. Implement client-side prediction flow so the game is playable immediately:
+   - After player picks a planet and confirms, run a 3s countdown, animate rocket, choose a random planet with deterministic pseudo-randomness (keccak256-style or seed+timestamp) and display result.
+   - Emit a browser console log with the random seed and selection (for debugging).
+   - Provide hooks for later switch to on-chain randomness/resolution (contract function names and event listeners).
+4. Add Firebase boilerplate (Firestore) and create /firebase/init.ts that can be enabled by adding credentials in `.env.local`. Add `firebase/README.md` describing steps and security rules example.
+5. Ensure Composer MCP & MiniPay MCP dependencies are installed. If missing, run MCP init commands and install required packages. Document any packages that need manual installation.
+6. Replace default favicon with `public/favicon.ico` (rocket icon). If rocket ico not present, create a simple SVG-to-ICO placeholder and write `public/favicon.ico`.
+7. Fix Vercel deploy config guidance: ensure `package.json` has correct build/start scripts and that Vercel's build command is `npm run build`. Document exact steps if the agent cannot set Vercel.
+8. Produce a short commit summary and a `/docs/ISSUES.md` describing anything the agent could not finish automatically.
+
+Files to modify/create: `/frontend/src/components/GameSection.tsx`, `/frontend/pages/_app.tsx` (or layout), `/frontend/public/favicon.ico`, `/firebase/init.ts`, `/docs/ISSUES.md`.
+
+Start now and produce a short status log every time a task completes. Do not ask for human confirmation; flag placeholders in `.env.example`.
+
+Use only the repo and approved docs. End.
