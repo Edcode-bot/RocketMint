@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { Wallet, ExternalLink, Copy, Check, Loader2, Clock } from "lucide-react";
+import { Wallet, ExternalLink, Copy, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,8 +13,6 @@ import {
   getcUSDBalance,
   switchToAlfajores,
   CELO_ALFAJORES_CONFIG,
-  detectMiniPayEnvironment,
-  connectWithTimeout,
 } from "@/lib/wallet";
 
 export function WalletConnect() {
@@ -23,13 +20,10 @@ export function WalletConnect() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [cUSDBalance, setcUSDBalance] = useState("0");
-  const [connectionStatus, setConnectionStatus] = useState("");
-  const [connectionStartTime, setConnectionStartTime] = useState<number | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Auto-connect if MiniPay detected
-    if (detectMiniPayEnvironment() && !wallet.isConnected) {
+    if (isMiniPay()) {
       handleConnect();
     }
   }, []);
@@ -42,28 +36,9 @@ export function WalletConnect() {
 
   const handleConnect = async () => {
     setIsConnecting(true);
-    setConnectionStartTime(Date.now());
-    setConnectionStatus("Connecting...");
-    
     try {
       await switchToAlfajores();
-      
-      let walletState;
-      
-      // Try MiniPay first if detected
-      if (detectMiniPayEnvironment()) {
-        setConnectionStatus("Connecting to MiniPay...");
-        try {
-          walletState = await connectWithTimeout(5000);
-        } catch (error) {
-          console.log("MiniPay timeout, falling back to standard wallet");
-          setConnectionStatus("Trying standard wallet...");
-          walletState = await connectWallet();
-        }
-      } else {
-        walletState = await connectWallet();
-      }
-      
+      const walletState = await connectWallet();
       setWallet(walletState);
       
       if (walletState.address) {
@@ -71,27 +46,21 @@ export function WalletConnect() {
         setcUSDBalance(balance);
       }
       
-      const elapsed = connectionStartTime ? Date.now() - connectionStartTime : 0;
-      setConnectionStatus(`Connected in ${(elapsed / 1000).toFixed(1)}s`);
-      
       toast({
         title: "Wallet Connected",
         description: walletState.isMiniPay 
-          ? `MiniPay connected (${(elapsed / 1000).toFixed(1)}s)` 
+          ? "Connected with MiniPay!" 
           : `Connected: ${shortenAddress(walletState.address || "")}`,
       });
     } catch (error) {
       console.error("Connection error:", error);
-      const elapsed = connectionStartTime ? Date.now() - connectionStartTime : 0;
       toast({
         title: "Connection Failed",
         description: error instanceof Error ? error.message : "Failed to connect wallet",
         variant: "destructive",
       });
-      setConnectionStatus(`Failed after ${(elapsed / 1000).toFixed(1)}s`);
     } finally {
       setIsConnecting(false);
-      setTimeout(() => setConnectionStatus(""), 3000);
     }
   };
 
@@ -143,9 +112,7 @@ export function WalletConnect() {
             <div>
               <h3 className="font-semibold text-lg">Connect Your Wallet</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {detectMiniPayEnvironment() 
-                  ? "Connecting to MiniPay..." 
-                  : "Connect your wallet to start playing RocketMint."}
+                Connect your wallet to start playing RocketMint.
               </p>
             </div>
             <Button 
@@ -166,12 +133,6 @@ export function WalletConnect() {
                 </>
               )}
             </Button>
-            {connectionStatus && (
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-2">
-                <Clock className="w-3 h-3" />
-                {connectionStatus}
-              </p>
-            )}
           </div>
         </CardContent>
       </Card>
