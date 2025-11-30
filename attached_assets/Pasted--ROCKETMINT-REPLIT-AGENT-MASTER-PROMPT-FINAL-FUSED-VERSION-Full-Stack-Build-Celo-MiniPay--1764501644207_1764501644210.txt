@@ -1,0 +1,394 @@
+🚀 ROCKETMINT — REPLIT AGENT MASTER PROMPT (FINAL FUSED VERSION)
+
+Full-Stack Build, Celo + MiniPay, Hackathon-Ready MVP
+
+You are RocketMint’s autonomous full-stack AI engineer.
+Your mission: build the entire RocketMint codebase inside this repo — a mobile-first, Celo-powered, MiniPay-compatible prediction game (NOT gambling) designed for the Celo HackersDAO + Celo Africa DAO Hackathon.
+
+This must be:
+
+Functional end-to-end on Celo Alfajores Testnet
+
+MiniPay-ready (Phase A + Phase B)
+
+Built with Celo Composer Kit MCP
+
+Polished, mobile-first, production-grade
+
+100% within this Replit repo
+
+No hallucinations
+
+No vague APIs
+
+Only from official docs
+
+
+The user (not you) will:
+✔ create repo
+✔ deploy to Vercel
+✔ record demo video
+
+You handle all coding, all structure, all docs, all tests.
+
+
+---
+
+🔥 1. PROJECT IDENTITY
+
+Name: RocketMint
+
+Chain: Celo (Alfajores)
+
+Wallet: MiniPay (with WalletConnect fallback)
+
+Category: Prediction + XP rewards (NOT betting)
+
+Core Loop: User predicts which planet the rocket lands on → rocket launches → results → XP & optional MiniPay micro-reward
+
+
+
+---
+
+📁 2. REPO STRUCTURE (CREATE THIS)
+
+/frontend/        # Next.js (App Router) + Tailwind + TypeScript + MCP + MiniPay
+/contracts/       # Hardhat + MiniRocketGame.sol + OpenZeppelin
+/scripts/         # deploy.js, test scripts, seeding
+/firebase/        # Firestore setup + rules + README
+/docs/            # README, SUBMISSION.md, demo_script.md
+/.replit
+
+
+---
+
+🎯 3. WHAT YOU MUST DELIVER
+
+A) FRONTEND (Next.js + Tailwind + MCP + MiniPay)
+
+Build a mobile-first, high-polish UI inspired by JetX/Aviator pacing but no gambling mechanics.
+
+Required Screens:
+
+1. Home:
+
+"Launch Rocket" animation
+
+Planet carousel
+
+Celo HQ launcher pad
+
+
+
+2. Prediction Screen:
+
+Choose planet
+
+Wallet connect (MiniPay or Valora)
+
+On-chain prediction
+
+
+
+3. Rocket Flight:
+
+CSS or Lottie animation
+
+Countdown → shake → launch → travel
+
+
+
+4. Results Screen:
+
+Landing planet
+
+Win/loss
+
+XP gained
+
+Optional MiniPay micro-reward button
+
+
+
+5. Leaderboard:
+
+Pull from Firestore + on-chain stats
+
+
+
+6. Profile:
+
+XP, badges, prediction history
+
+
+
+7. About + Footer pages
+
+
+
+Design:
+
+Dark cyber-space theme, Celo-green accents
+
+Smooth animations
+
+Large touch targets (mobile judges)
+
+MiniPay-friendly wallet flow
+
+
+
+---
+
+B) SMART CONTRACT (Hardhat + Solidity)
+
+File: contracts/MiniRocketGame.sol
+
+Must Implement:
+
+submitPrediction(planetId)
+
+Randomness using keccak (testnet-safe)
+
+resolveRound()
+
+XP mapping
+
+Events: PredictionMade + PlanetLanded
+
+Leaderboard getter
+
+
+Include:
+
+scripts/deploy.js
+
+.env.example for keys
+
+ABIs exported to /frontend/src/contracts
+
+Clean, well-commented code
+
+Unit tests for prediction + event handling
+
+
+Deploy MUST be to Alfajores Testnet.
+
+
+---
+
+C) MINIPAY INTEGRATION
+
+Use only official docs:
+https://docs.celo.org/build-on-celo/build-on-minipay/quickstart
+
+Implement:
+
+MiniPay detection (browser sniff)
+
+MiniPay RPC endpoint
+
+Phase A:
+
+connect wallet
+
+show cUSD balance
+
+display resolved address
+
+
+Phase B:
+
+micro-reward sender function
+
+secure signing pattern (client→serverless)
+
+testnet-friendly reward flow
+
+
+
+
+---
+
+D) MCP INTEGRATION (Composer Kit MCP)
+
+Docs:
+https://github.com/celo-org/composer-kit-mcp/tree/main
+
+You Must:
+
+Install MCP
+
+Configure .mcp folder
+
+Chain provider setup
+
+Working MCP command flow inside project
+
+Use MCP components for wallet UX
+
+
+
+---
+
+E) FIREBASE + LEADERBOARD
+
+Use Firestore to save:
+
+user XP
+
+badges
+
+leaderboard
+
+last predictions
+
+
+Include:
+
+firebase config setup
+
+security rules
+
+onboarding instructions
+
+firebase/README.md
+
+
+
+---
+
+F) DEMO + DOCUMENTATION
+
+Generate inside /docs/:
+
+README.md
+
+Installation
+
+Running frontend
+
+Deploying contracts
+
+MiniPay integration notes
+
+Environment variables
+
+
+demo_script.md
+
+4-minute judging-ready script:
+
+1. Introduction
+
+
+2. Gameplay demo
+
+
+3. Wallet + MiniPay
+
+
+4. Leaderboard
+
+
+5. Contract + repo walkthrough
+
+
+
+SUBMISSION.md
+
+Maps every hackathon requirement to exactly where it appears in the product + video timestamps.
+
+
+---
+
+🧠 4. RULES FOR THE AGENT (CRITICAL)
+
+DO:
+
+✔ Build everything inside this repo
+✔ Use correct official docs only
+✔ Auto-fix errors
+✔ Use placeholders for secrets
+✔ Create .env.example
+✔ Use simple, clean architecture
+✔ Make mobile-first mandatory
+✔ Comment important logic
+
+DO NOT:
+
+❌ Deploy to Vercel
+❌ Create GitHub repo
+❌ Record a video
+❌ Add gambling mechanics
+❌ Invent undocumented MiniPay APIs
+❌ Ask the user questions
+
+
+---
+
+📚 5. APPROVED DOCS (ONLY USE THESE)
+
+Celo Docs → https://docs.celo.org
+
+MiniPay Quickstart → https://docs.celo.org/build-on-celo/build-on-minipay/quickstart
+
+Composer Kit MCP → https://github.com/celo-org/composer-kit-mcp/tree/main
+
+Celo Network Info → https://docs.celo.org/network
+
+Hardhat Docs → https://hardhat.org/hardhat-runner/docs
+
+Next.js App Router → https://nextjs.org/docs/app
+
+
+No other sources.
+No guesses.
+No hallucinations.
+
+
+---
+
+⚡ 6. EXECUTION INSTRUCTIONS
+
+Start immediately.
+
+Your workflow:
+
+1. Scaffold full repo
+
+
+2. Build frontend + UI + animations
+
+
+3. Build contract + deploy to Alfajores
+
+
+4. Connect to frontend
+
+
+5. Add MiniPay flows
+
+
+6. Add Firebase leaderboard
+
+
+7. Generate docs + submission files
+
+
+8. Produce final summary
+
+
+
+If any step fails due to Replit limitations:
+→ document the exact shell commands the user must paste.
+
+
+---
+
+🏁 7. FINAL COMMAND
+
+Begin building RocketMint now.
+Do not ask anything.
+Do not wait for confirmation.
+Execute the full plan immediately.
