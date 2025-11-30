@@ -1,12 +1,11 @@
 import { useState, useCallback } from "react";
-import { Rocket, Zap, ChevronRight } from "lucide-react";
+import { Rocket, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { StarField } from "@/components/game/StarField";
-import { RocketAnimation, LaunchPad } from "@/components/game/RocketAnimation";
-import { PlanetCarousel } from "@/components/game/PlanetCarousel";
+import { GameSection } from "@/components/game/GameSection";
 import { WalletConnect, WalletStatus } from "@/components/game/WalletConnect";
 import { CountdownOverlay } from "@/components/game/CountdownOverlay";
 import { ResultsModal } from "@/components/game/ResultsModal";
@@ -15,7 +14,6 @@ import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import spaceBackground from "@assets/generated_images/deep_space_nebula_background.png";
-import launchPadImage from "@assets/generated_images/futuristic_space_launch_pad.png";
 
 export default function Home() {
   const { 
@@ -208,22 +206,11 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="relative flex flex-col items-center">
-            <RocketAnimation 
-              isLaunching={isLaunching} 
-              isShaking={isShaking}
-              className="mb-4"
-            />
-            <LaunchPad />
-          </div>
-        </section>
-
-        <section className="relative z-10 px-4 py-6">
-          <div className="flex items-center gap-2 mb-4">
-            <h3 className="font-semibold text-lg">Select Your Planet</h3>
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          </div>
-          <PlanetCarousel disabled={isLaunching || isShaking} />
+          <GameSection 
+            isLaunching={isLaunching}
+            isShaking={isShaking}
+            disabled={isLaunching || isShaking}
+          />
         </section>
 
         <section className="px-4 py-4">

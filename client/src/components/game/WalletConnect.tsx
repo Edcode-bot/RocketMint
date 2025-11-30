@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Wallet, ExternalLink, Copy, Check, Loader2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,8 @@ import {
   getcUSDBalance,
   switchToAlfajores,
   CELO_ALFAJORES_CONFIG,
+  detectMiniPayEnvironment,
+  connectWithTimeout,
 } from "@/lib/wallet";
 
 export function WalletConnect() {
@@ -20,10 +23,13 @@ export function WalletConnect() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [cUSDBalance, setcUSDBalance] = useState("0");
+  const [connectionStatus, setConnectionStatus] = useState("");
+  const [connectionStartTime, setConnectionStartTime] = useState<number | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isMiniPay()) {
+    // Auto-connect if MiniPay detected
+    if (detectMiniPayEnvironment() && !wallet.isConnected) {
       handleConnect();
     }
   }, []);
@@ -36,10 +42,28 @@ export function WalletConnect() {
 
   const handleConnect = async () => {
     setIsConnecting(true);
+    setConnectionStartTime(Date.now());
+    setConnectionStatus("Connecting...");
     
     try {
       await switchToAlfajores();
-      const walletState = await connectWallet();
+      
+      let walletState;
+      
+      // Try MiniPay first if detected
+      if (detectMiniPayEnvironment()) {
+        setConnectionStatus("Connecting to MiniPay...");
+        try {
+          walletState = await connectWithTimeout(5000);
+        } catch (error) {
+          console.log("MiniPay timeout, falling back to standard wallet");
+          setConnectionStatus("Trying standard wallet...");
+          walletState = await connectWallet();
+        }
+      } else {
+        walletState = await connectWallet();
+      }
+      
       setWallet(walletState);
       
       if (walletState.address) {
@@ -47,17 +71,18 @@ export function WalletConnect() {
         setcUSDBalance(balance);
       }
       
+      const elapsed = connectionStartTime ? Date.now() - connectionStartTime : 0;
+      setConnectionStatus(`Connected in ${(elapsed / 1000).toFixed(1)}s`);
+      
       toast({
         title: "Wallet Connected",
         description: walletState.isMiniPay 
-          ? "Connected with MiniPay!" 
+          ? `MiniPay connected (${(elapsed / 1000).toFixed(1)}s)` 
           : `Connected: ${shortenAddress(walletState.address || "")}`,
       });
     } catch (error) {
       console.error("Connection error:", error);
-      
-    } catch (error) {
-      console.error("Connection error:", error);
+      const elapsed = connectionStartTime ? Date.now() - connectionStartTime : 0;
       toast({
         title: "Connection Failed",
         description: error instanceof Error ? error.message : "Failed to connect wallet",
@@ -68,25 +93,6 @@ export function WalletConnect() {
       setIsConnecting(false);
       setTimeout(() => setConnectionStatus(""), 3000);
     }
-  };
-  
-  const finalizeConnection = async (walletState: typeof wallet) => {
-    setWallet(walletState);
-    
-    if (walletState.address) {
-      const balance = await getcUSDBalance(walletState.address);
-      setcUSDBalance(balance);
-    }
-    
-    const elapsed = connectionStartTime ? Date.now() - connectionStartTime : 0;
-    setConnectionStatus(`Connected in ${(elapsed / 1000).toFixed(1)}s`);
-    
-    toast({
-      title: "Wallet Connected",
-      description: walletState.isMiniPay 
-        ? `MiniPay connected (${(elapsed / 1000).toFixed(1)}s)` 
-        : `Connected: ${shortenAddress(walletState.address || "")}`,
-    });
   };
 
   const handleCopyAddress = () => {
@@ -137,7 +143,7 @@ export function WalletConnect() {
             <div>
               <h3 className="font-semibold text-lg">Connect Your Wallet</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {isMiniPay() 
+                {detectMiniPayEnvironment() 
                   ? "Connecting to MiniPay..." 
                   : "Connect your wallet to start playing RocketMint."}
               </p>
