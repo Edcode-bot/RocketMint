@@ -9,10 +9,11 @@ import { GameSection } from "@/components/game/GameSection";
 import { WalletConnect, WalletStatus } from "@/components/game/WalletConnect";
 import { CountdownOverlay } from "@/components/game/CountdownOverlay";
 import { ResultsModal } from "@/components/game/ResultsModal";
-import { useGameStore, getRandomPlanet, calculateXP, getPlanetById, getRandomPlanetDeterministic } from "@/lib/gameStore";
+import { useGameStore, getRandomPlanet, calculateXP, getPlanetById, getRandomPlanetDeterministic, PLANETS } from "@/lib/gameStore";
 import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { saveGameResult } from "@/lib/firestore";
 import spaceBackground from "@assets/generated_images/deep_space_nebula_background.png";
 
 export default function Home() {
@@ -118,8 +119,24 @@ export default function Home() {
           setIsLaunching(true);
 
           // Generate deterministic random result
-          const seed = `${wallet.address}-${selectedPlanet.id}-${Date.now()}`;
-          const { planet: landedPlanet, seed: usedSeed, index } = getRandomPlanetDeterministic(seed);
+          const walletPart = wallet.address || "anonymous";
+          const seed = `${walletPart}-${selectedPlanet.id}-${Date.now()}`;
+          
+          let landedPlanet;
+          let usedSeed;
+          let index;
+          
+          try {
+            const result = getRandomPlanetDeterministic(seed);
+            landedPlanet = result.planet;
+            usedSeed = result.seed;
+            index = result.index;
+          } catch (error) {
+            console.error("[RocketMint] Client random failed, defaulting to Earth:", error);
+            landedPlanet = getPlanetById(3) || PLANETS[0];
+            usedSeed = seed;
+            index = 0;
+          }
 
           // Simulate flight time
           setTimeout(() => {
@@ -135,6 +152,28 @@ export default function Home() {
             });
 
             setShowResults(true);
+
+            // Save to Firestore (client-side for now, move to Cloud Functions for security)
+            if (user && wallet.address) {
+              saveGameResult({
+                walletAddress: wallet.address,
+                username: user.username,
+                xp: user.xp + xpEarned,
+                totalPredictions: user.totalPredictions + 1,
+                correctPredictions: won ? user.correctPredictions + 1 : user.correctPredictions,
+                timestamp: Date.now()
+              }).catch(err => console.error("[RocketMint] Failed to save to Firestore:", err));
+            }
+
+            // Console log for debugging and on-chain integration
+            console.log(`[RocketMint] Client prediction result:`, {
+              seed: usedSeed,
+              selectedPlanet: selectedPlanet.id,
+              landedPlanet: landedPlanet.id,
+              won,
+              xpEarned,
+              randomIndex: index
+            });
 
             // TODO: On-chain integration hooks
             console.log(`[RocketMint] On-chain integration ready:`, {

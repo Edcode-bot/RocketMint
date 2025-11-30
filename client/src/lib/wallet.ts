@@ -1,3 +1,4 @@
+
 import { createWalletClient, createPublicClient, custom, http, formatEther } from "viem";
 import { celoAlfajores } from "viem/chains";
 import type { WalletState } from "@shared/schema";
@@ -6,6 +7,7 @@ declare global {
   interface Window {
     ethereum?: {
       isMiniPay?: boolean;
+      isValora?: boolean;
       request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
       on: (event: string, callback: (...args: unknown[]) => void) => void;
       removeListener: (event: string, callback: (...args: unknown[]) => void) => void;
@@ -31,6 +33,10 @@ export function isMiniPay(): boolean {
   return typeof window !== "undefined" && !!window.ethereum?.isMiniPay;
 }
 
+export function isValora(): boolean {
+  return typeof window !== "undefined" && !!window.ethereum?.isValora;
+}
+
 export function detectMiniPayEnvironment(): boolean {
   if (typeof window === "undefined") return false;
   const userAgent = window.navigator.userAgent.toLowerCase();
@@ -41,22 +47,96 @@ export function detectMiniPayEnvironment(): boolean {
   );
 }
 
-export async function connectWithTimeout(timeout: number = 5000): Promise<WalletState> {
+export function detectValoraEnvironment(): boolean {
+  if (typeof window === "undefined") return false;
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  return (
+    window.ethereum?.isValora === true ||
+    userAgent.includes("valora")
+  );
+}
+
+export type ConnectStatus = 
+  | "trying_minipay"
+  | "trying_valora"
+  | "minipay_timeout"
+  | "valora_timeout"
+  | "connecting_wallet"
+  | "connected"
+  | "failed";
+
+export interface ConnectResult {
+  status: ConnectStatus;
+  wallet?: WalletState;
+  error?: string;
+}
+
+async function tryMiniPayConnect(timeout: number = 4000): Promise<WalletState> {
+  if (!isMiniPay() && !detectMiniPayEnvironment()) {
+    throw new Error("MiniPay not detected");
+  }
+
   return Promise.race([
-    connectWallet(),
+    connectWallet("minipay"),
     new Promise<WalletState>((_, reject) =>
-      setTimeout(() => reject(new Error("Connection timeout")), timeout)
+      setTimeout(() => reject(new Error("MiniPay timeout")), timeout)
     ),
   ]);
+}
+
+async function tryValoraConnect(timeout: number = 4000): Promise<WalletState> {
+  if (!isValora() && !detectValoraEnvironment()) {
+    throw new Error("Valora not detected");
+  }
+
+  return Promise.race([
+    connectWallet("valora"),
+    new Promise<WalletState>((_, reject) =>
+      setTimeout(() => reject(new Error("Valora timeout")), timeout)
+    ),
+  ]);
+}
+
+export async function connectWithPriority(): Promise<ConnectResult> {
+  // Try MiniPay first (4s timeout)
+  if (isMiniPay() || detectMiniPayEnvironment()) {
+    try {
+      const wallet = await tryMiniPayConnect(4000);
+      return { status: "connected", wallet };
+    } catch (error) {
+      console.log("[Wallet] MiniPay timeout, trying Valora...");
+    }
+  }
+
+  // Try Valora second (4s timeout)
+  if (isValora() || detectValoraEnvironment()) {
+    try {
+      const wallet = await tryValoraConnect(4000);
+      return { status: "connected", wallet };
+    } catch (error) {
+      console.log("[Wallet] Valora timeout, falling back to wagmi...");
+    }
+  }
+
+  // Fallback to wagmi
+  try {
+    const wallet = await connectWallet("wagmi");
+    return { status: "connected", wallet };
+  } catch (error) {
+    return {
+      status: "failed",
+      error: error instanceof Error ? error.message : "Connection failed",
+    };
+  }
 }
 
 export function isWalletAvailable(): boolean {
   return typeof window !== "undefined" && !!window.ethereum;
 }
 
-export async function connectWallet(): Promise<WalletState> {
+export async function connectWallet(preferredProvider: "minipay" | "valora" | "wagmi" = "wagmi"): Promise<WalletState> {
   if (!isWalletAvailable()) {
-    throw new Error("No wallet detected. Please install MiniPay or a compatible wallet.");
+    throw new Error("No wallet detected. Please install MiniPay, Valora, or a compatible wallet.");
   }
 
   try {

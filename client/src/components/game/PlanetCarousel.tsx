@@ -7,6 +7,7 @@ import terraImage from "@assets/generated_images/blue_earth-like_planet.png";
 import saturnImage from "@assets/generated_images/golden_ringed_saturn_planet.png";
 import nebulaImage from "@assets/generated_images/purple_nebula_mystical_planet.png";
 import frostImage from "@assets/generated_images/ice_crystal_blue_planet.png";
+import { PlanetSVG } from "./PlanetSVG";
 
 const planetImages: Record<number, string> = {
   1: marsImage,
@@ -35,7 +36,7 @@ export function PlanetCarousel({ onSelect, disabled = false }: PlanetCarouselPro
       <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
         {PLANETS.map((planet) => {
           const isSelected = selectedPlanet?.id === planet.id;
-          
+
           return (
             <button
               key={planet.id}
@@ -50,25 +51,19 @@ export function PlanetCarousel({ onSelect, disabled = false }: PlanetCarouselPro
               )}
               data-testid={`planet-${planet.name.toLowerCase()}`}
             >
-              <div className={cn(
-                "relative w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden",
-                isSelected && "animate-planet-glow"
-              )}>
-                <img
-                  src={planetImages[planet.id]}
-                  alt={planet.name}
+              <div className="flex flex-col items-center gap-2">
+                <div
                   className={cn(
-                    "w-full h-full object-cover transition-transform duration-500",
-                    isSelected ? "scale-110" : "scale-100",
-                    !disabled && "animate-planet-float"
+                    "w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 transition-all flex items-center justify-center bg-space-dark/50",
+                    isSelected
+                      ? "border-celo-green shadow-lg shadow-celo-green/50 scale-110"
+                      : "border-white/20 hover:border-white/40"
                   )}
-                  style={{ animationDelay: `${planet.id * 0.5}s` }}
-                />
-                {isSelected && (
-                  <div className="absolute inset-0 rounded-full border-2 border-celo-green animate-pulse" />
-                )}
+                >
+                  <PlanetSVG planetId={planet.id} size="md" />
+                </div>
               </div>
-              
+
               <div className="text-center">
                 <p className={cn(
                   "font-semibold text-sm transition-colors duration-200",

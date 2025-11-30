@@ -1,29 +1,36 @@
+
 import { useState, useEffect } from "react";
-import { Wallet, ExternalLink, Copy, Check, Loader2 } from "lucide-react";
+import { Wallet, ExternalLink, Copy, Check, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useGameStore } from "@/lib/gameStore";
 import { 
-  connectWallet, 
-  isMiniPay, 
+  connectWithPriority,
+  connectWallet,
+  isMiniPay,
+  isValora,
   isWalletAvailable, 
   shortenAddress,
   getcUSDBalance,
   switchToAlfajores,
   CELO_ALFAJORES_CONFIG,
+  type ConnectStatus,
 } from "@/lib/wallet";
 
 export function WalletConnect() {
   const { wallet, setWallet } = useGameStore();
   const [isConnecting, setIsConnecting] = useState(false);
+  const [connectStatus, setConnectStatus] = useState<ConnectStatus | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [cUSDBalance, setcUSDBalance] = useState("0");
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isMiniPay()) {
+    if (isMiniPay() || isValora()) {
       handleConnect();
     }
   }, []);
@@ -36,24 +43,71 @@ export function WalletConnect() {
 
   const handleConnect = async () => {
     setIsConnecting(true);
+    setConnectionError(null);
+    setConnectStatus("trying_minipay");
+
     try {
       await switchToAlfajores();
-      const walletState = await connectWallet();
-      setWallet(walletState);
-      
-      if (walletState.address) {
-        const balance = await getcUSDBalance(walletState.address);
+      const result = await connectWithPriority();
+
+      if (result.status === "connected" && result.wallet) {
+        setWallet(result.wallet);
+        setConnectStatus("connected");
+        
+        const balance = await getcUSDBalance(result.wallet.address!);
         setcUSDBalance(balance);
+        
+        toast({
+          title: "Wallet Connected",
+          description: result.wallet.isMiniPay 
+            ? "Connected with MiniPay!" 
+            : `Connected: ${shortenAddress(result.wallet.address || "")}`,
+        });
+      } else {
+        setConnectStatus("failed");
+        setConnectionError(result.error || "Unknown error");
+        toast({
+          title: "Connection Failed",
+          description: result.error || "Failed to connect wallet",
+          variant: "destructive",
+        });
       }
+    } catch (error) {
+      console.error("Connection error:", error);
+      setConnectStatus("failed");
+      setConnectionError(error instanceof Error ? error.message : "Failed to connect wallet");
+      toast({
+        title: "Connection Failed",
+        description: error instanceof Error ? error.message : "Failed to connect wallet",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const handleWagmiConnect = async () => {
+    setIsConnecting(true);
+    setConnectionError(null);
+    setConnectStatus("connecting_wallet");
+
+    try {
+      await switchToAlfajores();
+      const walletState = await connectWallet("wagmi");
+      setWallet(walletState);
+      setConnectStatus("connected");
+      
+      const balance = await getcUSDBalance(walletState.address!);
+      setcUSDBalance(balance);
       
       toast({
         title: "Wallet Connected",
-        description: walletState.isMiniPay 
-          ? "Connected with MiniPay!" 
-          : `Connected: ${shortenAddress(walletState.address || "")}`,
+        description: `Connected: ${shortenAddress(walletState.address || "")}`,
       });
     } catch (error) {
-      console.error("Connection error:", error);
+      console.error("Wagmi connection error:", error);
+      setConnectStatus("failed");
+      setConnectionError(error instanceof Error ? error.message : "Failed to connect wallet");
       toast({
         title: "Connection Failed",
         description: error instanceof Error ? error.message : "Failed to connect wallet",
@@ -72,6 +126,27 @@ export function WalletConnect() {
     }
   };
 
+  const getStatusMessage = (): string => {
+    switch (connectStatus) {
+      case "trying_minipay":
+        return "Trying MiniPay...";
+      case "trying_valora":
+        return "Trying Valora...";
+      case "minipay_timeout":
+        return "MiniPay timeout — falling back...";
+      case "valora_timeout":
+        return "Valora timeout — falling back...";
+      case "connecting_wallet":
+        return "Connecting wallet...";
+      case "connected":
+        return "Connected";
+      case "failed":
+        return "Connection failed";
+      default:
+        return "Connect your wallet";
+    }
+  };
+
   if (!isWalletAvailable()) {
     return (
       <Card className="border-white/10 bg-gradient-to-b from-space-purple/30 to-space-dark/50">
@@ -83,7 +158,7 @@ export function WalletConnect() {
             <div>
               <h3 className="font-semibold text-lg">No Wallet Detected</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Please install MiniPay or a compatible wallet to play RocketMint.
+                Please install MiniPay, Valora, or a compatible wallet to play RocketMint.
               </p>
             </div>
             <Button 
@@ -107,32 +182,58 @@ export function WalletConnect() {
         <CardContent className="pt-6">
           <div className="flex flex-col items-center gap-4 text-center">
             <div className="w-16 h-16 rounded-full bg-celo-green/20 flex items-center justify-center">
-              <Wallet className="w-8 h-8 text-celo-green" />
+              {isConnecting ? (
+                <Loader2 className="w-8 h-8 text-celo-green animate-spin" />
+              ) : (
+                <Wallet className="w-8 h-8 text-celo-green" />
+              )}
             </div>
             <div>
               <h3 className="font-semibold text-lg">Connect Your Wallet</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Connect your wallet to start playing RocketMint.
+                {getStatusMessage()}
               </p>
             </div>
-            <Button 
-              onClick={handleConnect}
-              disabled={isConnecting}
-              className="gap-2 bg-celo-gradient hover:brightness-110"
-              data-testid="button-connect-wallet"
-            >
-              {isConnecting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Connecting...
-                </>
-              ) : (
-                <>
-                  <Wallet className="w-4 h-4" />
-                  Connect Wallet
-                </>
+
+            {connectionError && (
+              <Alert variant="destructive" className="w-full">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{connectionError}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex flex-col gap-2 w-full">
+              <Button 
+                onClick={handleConnect}
+                disabled={isConnecting}
+                className="gap-2 bg-celo-gradient hover:brightness-110"
+                data-testid="button-connect-wallet"
+              >
+                {isConnecting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {getStatusMessage()}
+                  </>
+                ) : (
+                  <>
+                    <Wallet className="w-4 h-4" />
+                    Connect Wallet
+                  </>
+                )}
+              </Button>
+
+              {connectStatus === "failed" && (
+                <Button 
+                  onClick={handleWagmiConnect}
+                  disabled={isConnecting}
+                  variant="outline"
+                  className="gap-2"
+                  data-testid="button-try-wagmi"
+                >
+                  Try Manual Connect (Wagmi)
+                </Button>
               )}
-            </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
