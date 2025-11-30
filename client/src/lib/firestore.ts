@@ -1,5 +1,5 @@
 
-import { getFirestoreDb } from "@/../firebase/init";
+import { getFirestoreDb } from "../../../firebase/init";
 import { collection, addDoc, query, orderBy, limit, getDocs } from "firebase/firestore";
 
 export interface LeaderboardEntry {

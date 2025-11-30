@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Wallet, ExternalLink, Copy, Check, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,6 +41,17 @@ export function WalletConnect() {
     }
   }, [wallet.address]);
 
+  useEffect(() => {
+    // Dynamically import MiniPay MCP only in browser environment
+    if (typeof window !== 'undefined') {
+      import('@/lib/minipay-mcp').then((module) => {
+        console.log('[WalletConnect] MiniPay MCP loaded:', module);
+      }).catch((err) => {
+        console.warn('[WalletConnect] MiniPay MCP not available:', err);
+      });
+    }
+  }, []);
+
   const handleConnect = async () => {
     setIsConnecting(true);
     setConnectionError(null);
@@ -54,10 +64,10 @@ export function WalletConnect() {
       if (result.status === "connected" && result.wallet) {
         setWallet(result.wallet);
         setConnectStatus("connected");
-        
+
         const balance = await getcUSDBalance(result.wallet.address!);
         setcUSDBalance(balance);
-        
+
         toast({
           title: "Wallet Connected",
           description: result.wallet.isMiniPay 
@@ -97,10 +107,10 @@ export function WalletConnect() {
       const walletState = await connectWallet("wagmi");
       setWallet(walletState);
       setConnectStatus("connected");
-      
+
       const balance = await getcUSDBalance(walletState.address!);
       setcUSDBalance(balance);
-      
+
       toast({
         title: "Wallet Connected",
         description: `Connected: ${shortenAddress(walletState.address || "")}`,
@@ -281,7 +291,7 @@ export function WalletConnect() {
             </div>
             <div className="w-3 h-3 rounded-full bg-celo-green animate-pulse" />
           </div>
-          
+
           <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/10">
             <div className="text-center p-3 rounded-lg bg-white/5">
               <p className="text-xs text-muted-foreground mb-1">cUSD Balance</p>
