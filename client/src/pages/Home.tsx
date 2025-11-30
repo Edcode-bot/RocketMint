@@ -10,7 +10,7 @@ import { PlanetCarousel } from "@/components/game/PlanetCarousel";
 import { WalletConnect, WalletStatus } from "@/components/game/WalletConnect";
 import { CountdownOverlay } from "@/components/game/CountdownOverlay";
 import { ResultsModal } from "@/components/game/ResultsModal";
-import { useGameStore, getRandomPlanet, calculateXP, getPlanetById } from "@/lib/gameStore";
+import { useGameStore, getRandomPlanet, calculateXP, getPlanetById, getRandomPlanetDeterministic } from "@/lib/gameStore";
 import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -31,7 +31,7 @@ export default function Home() {
     user,
     setUser,
   } = useGameStore();
-  
+
   const [isShaking, setIsShaking] = useState(false);
   const [showCountdown, setShowCountdown] = useState(false);
   const { toast } = useToast();
@@ -61,21 +61,21 @@ export default function Home() {
     setShowCountdown(false);
     setIsShaking(false);
     setIsLaunching(true);
-    
+
     setTimeout(() => {
       const landedPlanet = getRandomPlanet();
       const won = selectedPlanet?.id === landedPlanet.id;
       const xpEarned = calculateXP(won, landedPlanet);
-      
+
       setLastResult({
         won,
         landedPlanet,
         xpEarned,
       });
-      
+
       setIsLaunching(false);
       setShowResults(true);
-      
+
       if (user) {
         setUser({
           ...user,
@@ -92,29 +92,72 @@ export default function Home() {
   }, [selectedPlanet, setIsLaunching, setLastResult, setShowResults, user, setUser]);
 
   const handleLaunch = useCallback(() => {
-    if (!wallet.isConnected) {
+    if (!wallet.isConnected || !selectedPlanet) {
       toast({
-        title: "Wallet Required",
-        description: "Please connect your wallet to play.",
+        title: "Cannot Launch",
+        description: !wallet.isConnected ? "Please connect your wallet first" : "Please select a planet",
         variant: "destructive",
       });
       return;
     }
 
-    if (!selectedPlanet) {
-      toast({
-        title: "Select a Planet",
-        description: "Choose a planet for your prediction before launching.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Start shaking animation
+    setIsShaking(true);
 
+    setTimeout(() => {
+      setIsShaking(false);
+      setShowCountdown(true);
+
+      // 3-second countdown
+      let countdownValue = 3;
+      const countdownInterval = setInterval(() => {
+        countdownValue--;
+        if (countdownValue <= 0) {
+          clearInterval(countdownInterval);
+
+          // Launch rocket
+          setShowCountdown(false);
+          setIsLaunching(true);
+
+          // Generate deterministic random result
+          const seed = `${wallet.address}-${selectedPlanet.id}-${Date.now()}`;
+          const { planet: landedPlanet, seed: usedSeed, index } = getRandomPlanetDeterministic(seed);
+
+          // Simulate flight time
+          setTimeout(() => {
+            setIsLaunching(false);
+
+            const won = landedPlanet.id === selectedPlanet.id;
+            const xpEarned = calculateXP(won, selectedPlanet);
+
+            setLastResult({
+              won,
+              landedPlanet,
+              xpEarned,
+            });
+
+            setShowResults(true);
+
+            // TODO: On-chain integration hooks
+            console.log(`[RocketMint] On-chain integration ready:`, {
+              contractFunction: "submitPrediction",
+              eventListener: "PredictionResolved",
+              prediction: selectedPlanet.id,
+              result: landedPlanet.id,
+              won,
+              xpEarned
+            });
+          }, 2000);
+        }
+      }, 1000);
+    }, 1000);
+
+    // Submit to backend (non-blocking)
     predictionMutation.mutate({
       walletAddress: wallet.address!,
       planetId: selectedPlanet.id,
     });
-  }, [wallet, selectedPlanet, predictionMutation, toast]);
+  }, [wallet, selectedPlanet, predictionMutation, toast, setIsShaking, setShowCountdown, setIsLaunching, setLastResult, setShowResults]);
 
   const handlePlayAgain = useCallback(() => {
     resetGame();
@@ -127,7 +170,7 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-background overflow-hidden">
       <StarField count={80} />
-      
+
       <div 
         className="absolute inset-0 opacity-30 pointer-events-none"
         style={{
@@ -136,7 +179,7 @@ export default function Home() {
           backgroundPosition: "center",
         }}
       />
-      
+
       <header className="relative z-10 flex items-center justify-between p-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-celo-gradient flex items-center justify-center">
@@ -149,7 +192,7 @@ export default function Home() {
         </div>
         <WalletStatus />
       </header>
-      
+
       <main className="relative z-10 flex-1 flex flex-col pb-24">
         <section className="flex-1 flex flex-col items-center justify-center px-4 py-8">
           <div className="text-center mb-8">
@@ -164,7 +207,7 @@ export default function Home() {
               Choose a planet, launch the rocket, and earn XP rewards for correct predictions!
             </p>
           </div>
-          
+
           <div className="relative flex flex-col items-center">
             <RocketAnimation 
               isLaunching={isLaunching} 
@@ -174,7 +217,7 @@ export default function Home() {
             <LaunchPad />
           </div>
         </section>
-        
+
         <section className="relative z-10 px-4 py-6">
           <div className="flex items-center gap-2 mb-4">
             <h3 className="font-semibold text-lg">Select Your Planet</h3>
@@ -182,11 +225,11 @@ export default function Home() {
           </div>
           <PlanetCarousel disabled={isLaunching || isShaking} />
         </section>
-        
+
         <section className="px-4 py-4">
           <WalletConnect />
         </section>
-        
+
         <div className="fixed bottom-20 left-0 right-0 px-4 z-20">
           <Button
             onClick={handleLaunch}
@@ -213,13 +256,13 @@ export default function Home() {
           </Button>
         </div>
       </main>
-      
+
       <CountdownOverlay
         seconds={3}
         isActive={showCountdown}
         onComplete={handleCountdownComplete}
       />
-      
+
       <ResultsModal
         isOpen={showResults}
         onClose={handleCloseResults}

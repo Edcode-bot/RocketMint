@@ -31,6 +31,25 @@ export function isMiniPay(): boolean {
   return typeof window !== "undefined" && !!window.ethereum?.isMiniPay;
 }
 
+export function detectMiniPayEnvironment(): boolean {
+  if (typeof window === "undefined") return false;
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  return (
+    window.ethereum?.isMiniPay === true ||
+    userAgent.includes("minipay") ||
+    userAgent.includes("opera")
+  );
+}
+
+export async function connectWithTimeout(timeout: number = 5000): Promise<WalletState> {
+  return Promise.race([
+    connectWallet(),
+    new Promise<WalletState>((_, reject) =>
+      setTimeout(() => reject(new Error("Connection timeout")), timeout)
+    ),
+  ]);
+}
+
 export function isWalletAvailable(): boolean {
   return typeof window !== "undefined" && !!window.ethereum;
 }

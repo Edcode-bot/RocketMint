@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Wallet, ExternalLink, Copy, Check, Loader2 } from "lucide-react";
+import { Wallet, ExternalLink, Copy, Check, Loader2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,10 +20,13 @@ export function WalletConnect() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [cUSDBalance, setcUSDBalance] = useState("0");
+  const [connectionStatus, setConnectionStatus] = useState("");
+  const [connectionStartTime, setConnectionStartTime] = useState<number | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isMiniPay()) {
+    const { detectMiniPayEnvironment } = require("@/lib/wallet");
+    if (detectMiniPayEnvironment()) {
       handleConnect();
     }
   }, []);
@@ -36,32 +39,64 @@ export function WalletConnect() {
 
   const handleConnect = async () => {
     setIsConnecting(true);
+    setConnectionStartTime(Date.now());
+    const { connectWithTimeout, detectMiniPayEnvironment } = require("@/lib/wallet");
+    
     try {
+      setConnectionStatus("Switching to Alfajores...");
       await switchToAlfajores();
-      const walletState = await connectWallet();
-      setWallet(walletState);
       
-      if (walletState.address) {
-        const balance = await getcUSDBalance(walletState.address);
-        setcUSDBalance(balance);
+      const isMiniPayEnv = detectMiniPayEnvironment();
+      
+      if (isMiniPayEnv) {
+        setConnectionStatus("Connecting via MiniPay...");
+        try {
+          const walletState = await connectWithTimeout(5000);
+          await finalizeConnection(walletState);
+          return;
+        } catch (timeoutError) {
+          console.warn("MiniPay connection timeout, trying standard connection");
+          setConnectionStatus("Trying alternative connection...");
+        }
+      } else {
+        setConnectionStatus("Connecting wallet...");
       }
       
-      toast({
-        title: "Wallet Connected",
-        description: walletState.isMiniPay 
-          ? "Connected with MiniPay!" 
-          : `Connected: ${shortenAddress(walletState.address || "")}`,
-      });
+      const walletState = await connectWallet();
+      await finalizeConnection(walletState);
+      
     } catch (error) {
       console.error("Connection error:", error);
+      const elapsed = connectionStartTime ? Date.now() - connectionStartTime : 0;
       toast({
         title: "Connection Failed",
         description: error instanceof Error ? error.message : "Failed to connect wallet",
         variant: "destructive",
       });
+      setConnectionStatus(`Failed after ${(elapsed / 1000).toFixed(1)}s`);
     } finally {
       setIsConnecting(false);
+      setTimeout(() => setConnectionStatus(""), 3000);
     }
+  };
+  
+  const finalizeConnection = async (walletState: typeof wallet) => {
+    setWallet(walletState);
+    
+    if (walletState.address) {
+      const balance = await getcUSDBalance(walletState.address);
+      setcUSDBalance(balance);
+    }
+    
+    const elapsed = connectionStartTime ? Date.now() - connectionStartTime : 0;
+    setConnectionStatus(`Connected in ${(elapsed / 1000).toFixed(1)}s`);
+    
+    toast({
+      title: "Wallet Connected",
+      description: walletState.isMiniPay 
+        ? `MiniPay connected (${(elapsed / 1000).toFixed(1)}s)` 
+        : `Connected: ${shortenAddress(walletState.address || "")}`,
+    });
   };
 
   const handleCopyAddress = () => {
@@ -135,6 +170,12 @@ export function WalletConnect() {
                 </>
               )}
             </Button>
+            {connectionStatus && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-2">
+                <Clock className="w-3 h-3" />
+                {connectionStatus}
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -94,6 +94,33 @@ export function getRandomPlanet(): Planet {
   return PLANETS[randomIndex];
 }
 
+export function getRandomPlanetDeterministic(seed: string): { planet: Planet; seed: string; index: number } {
+  // Simple hash function for deterministic pseudo-randomness
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    const char = seed.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  
+  const absHash = Math.abs(hash);
+  const index = absHash % PLANETS.length;
+  
+  console.log(`[RocketMint] Deterministic Selection:`, {
+    seed,
+    hash: absHash,
+    selectedIndex: index,
+    selectedPlanet: PLANETS[index].name,
+    allPlanets: PLANETS.map(p => p.name)
+  });
+  
+  return {
+    planet: PLANETS[index],
+    seed,
+    index
+  };
+}
+
 export function calculateXP(won: boolean, planet: Planet): number {
   if (!won) return 10;
   return Math.floor(50 * planet.multiplier);
